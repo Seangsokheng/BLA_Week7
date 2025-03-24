@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:week_3_blabla_project/ui/provider/rides_preferences_provider.dart';
 import '../../../model/ride/ride_filter.dart';
 import 'widgets/ride_pref_bar.dart';
-import '../../../service/ride_prefs_service.dart';
-
+import 'package:provider/provider.dart';
 import '../../../model/ride/ride.dart';
 import '../../../model/ride/ride_pref.dart';
 import '../../../service/rides_service.dart';
@@ -15,45 +15,33 @@ import 'widgets/rides_tile.dart';
 ///  The Ride Selection screen allow user to select a ride, once ride preferences have been defined.
 ///  The screen also allow user to re-define the ride preferences and to activate some filters.
 ///
-class RidesScreen extends StatefulWidget {
-  const RidesScreen({super.key});
+class RidesScreen extends StatelessWidget {
+  RidesScreen({super.key});
 
-  @override
-  State<RidesScreen> createState() => _RidesScreenState();
-}
-
-class _RidesScreenState extends State<RidesScreen> {
-  RidePreference get currentPreference =>
-      RidePrefService.instance.currentPreference!;
-
-  RideFilter currentFilter = RideFilter();
-
-  List<Ride> get matchingRides =>
-      RidesService.instance.getRidesFor(currentPreference, currentFilter);
-
-  void onBackPressed() {
+  void onBackPressed(context) {
     // 1 - Back to the previous view
     Navigator.of(context).pop();
   }
 
-  onRidePrefSelected(RidePreference newPreference) async {}
+  onRidePrefSelected(BuildContext context,RidePreference newPreference) async {
+    context.read<RidesPreferencesProvider>().setCurrentPreference(newPreference);
+  }
 
-  void onPreferencePressed() async {
+  void onPreferencePressed(BuildContext context) async {
+    final provider = context.read<RidesPreferencesProvider>();
+
     // Open a modal to edit the ride preferences
     RidePreference? newPreference = await Navigator.of(
       context,
     ).push<RidePreference>(
       AnimationUtils.createTopToBottomRoute(
-        RidePrefModal(initialPreference: currentPreference),
+        RidePrefModal(initialPreference: provider.currentPreference),
       ),
     );
 
     if (newPreference != null) {
       // 1 - Update the current preference
-      RidePrefService.instance.setCurrentPreference(newPreference);
-
-      // 2 -   Update the state   -- TODO MAKE IT WITH STATE MANAGEMENT
-      setState(() {});
+      provider.setCurrentPreference(newPreference);
     }
   }
 
@@ -61,6 +49,10 @@ class _RidesScreenState extends State<RidesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<RidesPreferencesProvider>();
+    final RidePreference? currentPreference = provider.currentPreference;
+    final RideFilter currentFilter = RideFilter();
+    final List<Ride> matchingRides = RidesService.instance.getRidesFor(currentPreference!, currentFilter);
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(
@@ -73,8 +65,8 @@ class _RidesScreenState extends State<RidesScreen> {
             // Top search Search bar
             RidePrefBar(
               ridePreference: currentPreference,
-              onBackPressed: onBackPressed,
-              onPreferencePressed: onPreferencePressed,
+              onBackPressed: () => onBackPressed(context),
+              onPreferencePressed:() => onPreferencePressed(context),
               onFilterPressed: onFilterPressed,
             ),
 
